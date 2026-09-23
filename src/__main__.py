@@ -1,4 +1,10 @@
-import json
+"""Entry point for the function-calling CLI application.
+
+Parses command-line arguments for input/output file paths, loads
+function definitions and user prompts, runs constrained decoding,
+and writes the resulting function calls to a JSON output file.
+"""
+
 import sys
 import os
 import argparse
@@ -7,7 +13,14 @@ from src.decoder import decoder
 from json import dump
 
 
-def main():
+def main() -> None:
+    """Run the function-calling pipeline from the command line.
+
+    Parses ``--input``, ``--output``, and ``--functions_definition``
+    arguments (with sensible defaults), reads and validates the input
+    files, runs the constrained-decoding pipeline, and writes the
+    results as indented JSON to the output path.
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--input",
@@ -21,11 +34,28 @@ def main():
     args = parser.parse_args()
 
     path = os.path.dirname(args.output)
-    os.makedirs(path, exist_ok=True)
+    if path:
+        os.makedirs(path, exist_ok=True)
 
-    with open(path + args.output[len(path):], "w") as o:
-        res = decoder(parse_prompts(args.input), parse_definition(args.functions_definition))
+    prompts = parse_prompts(args.input)
+    functions = parse_definition(args.functions_definition)
+    with open(args.output, "w", encoding="utf-8") as o:
+        res = decoder(prompts, functions)
         dump(res, o, indent=4)
 
+
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        main()
+    except OSError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        sys.exit(1)
+    except ValueError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        sys.exit(1)
+    except KeyboardInterrupt:
+        print("\nInterrupted by user.", file=sys.stderr)
+        sys.exit(130)
+    except Exception as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        sys.exit(1)
