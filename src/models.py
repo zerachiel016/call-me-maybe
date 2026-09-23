@@ -158,7 +158,11 @@ def parse_definition(path: str) -> list[FunctionDef]:
     """
     with open(path, "r", encoding="utf-8") as handle:
         data = json.load(handle, object_pairs_hook=reject_duplicates)
-    return [FunctionDef.model_validate(d) for d in data]
+
+    result = [FunctionDef.model_validate(d) for d in data]
+    if result:
+        return result
+    raise ValueError("Function definitions file is empty!")
 
 
 def parse_prompts(path: str) -> list[Prompt]:
